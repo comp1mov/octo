@@ -1,3 +1,5 @@
+ console.log("Скрипт работает!");
+
 // Разбиваем текст заголовков h1 на отдельные буквы
 document.querySelectorAll("h1").forEach((heading) => {
     const text = heading.textContent;
