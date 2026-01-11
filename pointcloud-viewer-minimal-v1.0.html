@@ -205,7 +205,7 @@
                 gl_Position = projectionMatrix * mvPosition;
                 
                 // Apply random size variation + multiplier for easier control
-                float finalSize = pointSize * 100.0 * (1.0 + randomSize * randomSizeFactor);
+                float finalSize = pointSize / 100.0 * (1.0 + randomSize * randomSizeFactor);
                 gl_PointSize = finalSize * (300.0 / -mvPosition.z);
             }
         `;
