@@ -104,21 +104,27 @@
         // ============================================
         const CONFIG = {
             // File URL (Dropbox, Google Drive, or local server)
-            plyUrl: 'https://dl.dropboxusercontent.com/scl/fi/2vvc9mp0fob0bpgmr4azn/Colambia_Road_gallery_London_market-1.6_mln.ply?rlkey=b2g09ryq3gu0n82awi3q47y41',
+            plyUrl: 'https://dl.dropboxusercontent.com/scl/fi/kp5io5lfx2gg5zg496ox2/Scan-at-14-36_Cross_Road_02.ply?rlkey=d12h3qm0so2bmird7gnndgq7x&',
             
             // Camera
             cameraPosition: [2, 1.5, 2],
             cameraTarget: [0, 0, 0],
             cameraFOV: 75,
+            cameraNear: 0.01,
+            cameraFar: 1000,
             
             // Points
-            pointSize: 2.0,
+            pointSize: 0.5,           // Base size of points
+            randomSize: 0.0,          // Random variation (0-1)
             
             // Grid
             showGrid: true,
-            gridSize: 10,
-            gridDivisions: 10,
+            gridSize: 10,             // Total size of grid
+            gridDivisions: 10,        // Number of divisions
             gridColor: '#444444',
+            gridOffsetX: 0,           // Grid offset X
+            gridOffsetY: 0,           // Grid offset Y  
+            gridOffsetZ: 0,           // Grid offset Z
             
             // Background
             backgroundColor: '#000000',
@@ -133,8 +139,8 @@
         const camera = new THREE.PerspectiveCamera(
             CONFIG.cameraFOV,
             window.innerWidth / window.innerHeight,
-            0.01,
-            1000
+            CONFIG.cameraNear,
+            CONFIG.cameraFar
         );
         camera.position.set(...CONFIG.cameraPosition);
         
@@ -159,6 +165,7 @@
                 CONFIG.gridColor,
                 CONFIG.gridColor
             );
+            grid.position.set(CONFIG.gridOffsetX, CONFIG.gridOffsetY, CONFIG.gridOffsetZ);
             scene.add(grid);
         }
 
@@ -167,14 +174,19 @@
         // ============================================
         const vertexShader = `
             uniform float pointSize;
+            uniform float randomSize;
             attribute vec3 color;
+            attribute float randomSizeFactor;
             varying vec3 vColor;
             
             void main() {
                 vColor = color;
                 vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
                 gl_Position = projectionMatrix * mvPosition;
-                gl_PointSize = pointSize * (300.0 / -mvPosition.z);
+                
+                // Apply random size variation
+                float finalSize = pointSize * (1.0 + randomSize * randomSizeFactor);
+                gl_PointSize = finalSize * (300.0 / -mvPosition.z);
             }
         `;
 
@@ -194,19 +206,50 @@
         // ============================================
         // LOAD POINT CLOUD
         // ============================================
+        
+        // CORS Proxy helper
+        function getCorsProxyUrl(url) {
+            // If it's a relative path or already proxied, return as-is
+            if (!url.startsWith('http') || url.includes('corsproxy') || url.includes('allorigins')) {
+                return url;
+            }
+            
+            // For Dropbox and other CORS-blocked services
+            if (url.includes('dropbox.com')) {
+                // Try converting to direct link first
+                const directUrl = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('&dl=1', '');
+                // If that doesn't work, proxy will be used on retry
+                return directUrl;
+            }
+            
+            return url;
+        }
+        
         const loader = new PLYLoader();
         const loadingOverlay = document.getElementById('loading-overlay');
         const loadingProgress = document.getElementById('loading-progress');
 
+        const finalUrl = getCorsProxyUrl(CONFIG.plyUrl);
+        console.log('Loading from:', finalUrl);
+
         loader.load(
-            CONFIG.plyUrl,
+            finalUrl,
             (geometry) => {
                 console.log('✅ Point cloud loaded');
+                
+                // Add random size attribute
+                const positions = geometry.attributes.position;
+                const randomSizes = new Float32Array(positions.count);
+                for (let i = 0; i < positions.count; i++) {
+                    randomSizes[i] = Math.random();
+                }
+                geometry.setAttribute('randomSizeFactor', new THREE.BufferAttribute(randomSizes, 1));
                 
                 // Create material
                 const material = new THREE.ShaderMaterial({
                     uniforms: {
-                        pointSize: { value: CONFIG.pointSize }
+                        pointSize: { value: CONFIG.pointSize },
+                        randomSize: { value: CONFIG.randomSize }
                     },
                     vertexShader: vertexShader,
                     fragmentShader: fragmentShader,
@@ -222,8 +265,13 @@
                 geometry.computeBoundingBox();
                 const center = new THREE.Vector3();
                 geometry.boundingBox.getCenter(center);
-                controls.target.copy(center);
-                controls.update();
+                
+                // Don't override user's camera target if they set one
+                // Only center if target is at origin (0,0,0)
+                if (CONFIG.cameraTarget[0] === 0 && CONFIG.cameraTarget[1] === 0 && CONFIG.cameraTarget[2] === 0) {
+                    controls.target.copy(center);
+                    controls.update();
+                }
                 
                 // Hide loading
                 loadingOverlay.classList.add('hidden');
