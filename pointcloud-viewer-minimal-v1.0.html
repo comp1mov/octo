@@ -193,8 +193,8 @@
                 uniforms: {
                     gridColor: { value: new THREE.Color(CONFIG.gridColor) },
                     fadeStart: { value: CONFIG.gridFadeStart },
-                    fadeEnd: { value: CONFIG.fadeEnd },
-                    gridSize: { value: CONFIG.gridSize }
+                    fadeEnd: { value: CONFIG.gridFadeEnd },
+                    gridDivisions: { value: CONFIG.gridDivisions }
                 },
                 vertexShader: `
                     varying vec2 vUv;
@@ -211,7 +211,7 @@
                     uniform vec3 gridColor;
                     uniform float fadeStart;
                     uniform float fadeEnd;
-                    uniform float gridSize;
+                    uniform float gridDivisions;
                     varying vec2 vUv;
                     varying vec3 vWorldPos;
                     
@@ -224,7 +224,7 @@
                         float fade = 1.0 - smoothstep(fadeStart, fadeEnd, dist);
                         
                         // Grid lines
-                        vec2 coord = vUv * float(${CONFIG.gridDivisions});
+                        vec2 coord = vUv * gridDivisions;
                         vec2 grid = abs(fract(coord - 0.5) - 0.5) / fwidth(coord);
                         float line = min(grid.x, grid.y);
                         float gridMask = 1.0 - min(line, 1.0);
