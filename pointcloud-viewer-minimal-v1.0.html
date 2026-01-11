@@ -257,7 +257,7 @@
             uniform float maxDistance;
             uniform float minPointSize;
             uniform float maxPointSize;
-            uniform vec3 cameraPosition;
+            uniform vec3 customCameraPos;
             
             attribute vec3 color;
             attribute float randomSizeFactor;
@@ -276,7 +276,7 @@
                 
                 // Apply distance-based sizing if enabled
                 if (pointSizeByDistance) {
-                    float dist = distance(cameraPosition, worldPosition.xyz);
+                    float dist = distance(customCameraPos, worldPosition.xyz);
                     float t = clamp((dist - minDistance) / (maxDistance - minDistance), 0.0, 1.0);
                     float sizeMult = mix(minPointSize, maxPointSize, t);
                     baseSize *= sizeMult;
@@ -383,7 +383,7 @@
                         maxDistance: { value: CONFIG.maxDistance },
                         minPointSize: { value: CONFIG.minPointSize },
                         maxPointSize: { value: CONFIG.maxPointSize },
-                        cameraPosition: { value: camera.position }
+                        customCameraPos: { value: camera.position }
                     },
                     vertexShader: vertexShader,
                     fragmentShader: fragmentShader,
@@ -452,7 +452,7 @@
             
             // Update camera position in shader for distance-based sizing
             if (window.pointCloudMaterial) {
-                window.pointCloudMaterial.uniforms.cameraPosition.value.copy(camera.position);
+                window.pointCloudMaterial.uniforms.customCameraPos.value.copy(camera.position);
             }
             
             // Animated rotation
