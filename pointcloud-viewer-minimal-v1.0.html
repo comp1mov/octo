@@ -110,7 +110,7 @@
             // Cloud Transform
             cloudRotation: {          // Static rotation (degrees)
                 x: 0,
-                y: -23,
+                y: 23,
                 z: 0
             },
             cloudRotationSpeed: {     // Animated rotation speed (degrees/second)
@@ -140,7 +140,7 @@
             minDistance: 0.0,         // Distance where points are smallest
             maxDistance: 3.0,         // Distance where points are largest
             minPointSize: 1.0,        // Size at min distance
-            maxPointSize: 1.0,        // Size at max distance
+            maxPointSize: 3.0,        // Size at max distance
             
             // Grid
             showGrid: true,
@@ -150,8 +150,8 @@
             gridOffsetX: 0,           // Grid offset X
             gridOffsetY: -0.27,       // Grid offset Y  
             gridOffsetZ: 0,           // Grid offset Z
-            gridFadeStart: 60.0,       // Start fading at 40% from center
-            gridFadeEnd: 60.0,         // Fully transparent at edges
+            gridFadeStart: 0.4,       // Start fading at 40% from center (0-1)
+            gridFadeEnd: 1.0,         // Fully transparent at edges (0-1)
          
             // Background
             backgroundColor: '#000000',
@@ -183,7 +183,7 @@
         controls.update();
 
         // ============================================
-        // GRID (Simple GridHelper - reliable)
+        // GRID WITH RADIAL FADE
         // ============================================
         if (CONFIG.showGrid) {
             const grid = new THREE.GridHelper(
@@ -194,14 +194,57 @@
             );
             grid.position.set(CONFIG.gridOffsetX, CONFIG.gridOffsetY, CONFIG.gridOffsetZ);
             
-            // Make grid fade at edges (modify opacity)
-            grid.material.transparent = true;
-            grid.material.opacity = 0.5;
+            // Custom shader material for fade effect
+            const gridMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    gridColor: { value: new THREE.Color(CONFIG.gridColor) },
+                    fadeStart: { value: CONFIG.gridFadeStart },
+                    fadeEnd: { value: CONFIG.gridFadeEnd },
+                    gridCenter: { value: new THREE.Vector3(CONFIG.gridOffsetX, CONFIG.gridOffsetY, CONFIG.gridOffsetZ) },
+                    gridSize: { value: CONFIG.gridSize }
+                },
+                vertexShader: `
+                    uniform vec3 gridCenter;
+                    varying vec3 vWorldPos;
+                    
+                    void main() {
+                        vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                        vWorldPos = worldPos.xyz;
+                        gl_Position = projectionMatrix * viewMatrix * worldPos;
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 gridColor;
+                    uniform float fadeStart;
+                    uniform float fadeEnd;
+                    uniform vec3 gridCenter;
+                    uniform float gridSize;
+                    varying vec3 vWorldPos;
+                    
+                    void main() {
+                        // Distance from center (normalized 0-1)
+                        vec2 centerDist = (vWorldPos.xz - gridCenter.xz) / (gridSize * 0.5);
+                        float dist = length(centerDist);
+                        
+                        // Radial fade
+                        float alpha = 1.0 - smoothstep(fadeStart, fadeEnd, dist);
+                        
+                        // Base opacity
+                        alpha *= 0.5;
+                        
+                        gl_FragColor = vec4(gridColor, alpha);
+                    }
+                `,
+                transparent: true,
+                depthWrite: false,
+                side: THREE.DoubleSide
+            });
+            
+            // Replace grid material
+            grid.material.dispose();
+            grid.material = gridMaterial;
             
             scene.add(grid);
-            
-            // TODO: Add radial fade shader later if needed
-            // For now, simple grid that works is better
         }
 
         // ============================================
@@ -234,8 +277,6 @@
                 
                 // Apply random size variation (multiplier)
                 float randomMult = 1.0 + randomSize * (randomSizeFactor - 0.5) * 2.0;
-                // randomSizeFactor: 0-1, converted to -1 to +1 range
-                // randomSize: 0 = no variation, 0.5 = ±50%, 1.0 = ±100%
                 finalSize *= randomMult;
                 
                 // Apply distance-based sizing if enabled (multiplier)
@@ -273,16 +314,12 @@
         
         // CORS Proxy helper
         function getCorsProxyUrl(url) {
-            // If it's a relative path or already proxied, return as-is
             if (!url.startsWith('http') || url.includes('corsproxy') || url.includes('allorigins')) {
                 return url;
             }
             
-            // For Dropbox and other CORS-blocked services
             if (url.includes('dropbox.com')) {
-                // Try converting to direct link first
                 const directUrl = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('&dl=1', '');
-                // If that doesn't work, proxy will be used on retry
                 return directUrl;
             }
             
@@ -308,13 +345,11 @@
                     const center = new THREE.Vector3();
                     bbox.getCenter(center);
                     
-                    // Get max dimension for uniform scaling
                     const size = new THREE.Vector3();
                     bbox.getSize(size);
                     const maxDim = Math.max(size.x, size.y, size.z);
-                    const scale = 2.0 / maxDim; // Scale to fit in [-1, 1]
+                    const scale = 2.0 / maxDim;
                     
-                    // Center and scale positions
                     const positions = geometry.attributes.position;
                     for (let i = 0; i < positions.count; i++) {
                         positions.setXYZ(
@@ -338,7 +373,7 @@
                 }
                 geometry.setAttribute('randomSizeFactor', new THREE.BufferAttribute(randomSizes, 1));
                 
-                // Create material with PROPER depth settings
+                // Create material
                 const material = new THREE.ShaderMaterial({
                     uniforms: {
                         pointSize: { value: CONFIG.pointSize },
@@ -352,56 +387,50 @@
                     },
                     vertexShader: vertexShader,
                     fragmentShader: fragmentShader,
-                    transparent: false,      // NOT transparent for proper depth
-                    depthTest: true,         // Enable depth testing
-                    depthWrite: true         // Write to depth buffer
+                    transparent: false,
+                    depthTest: true,
+                    depthWrite: true
                 });
                 
                 // Create point cloud
                 const pointCloud = new THREE.Points(geometry, material);
                 
-                // Store material reference for camera position updates
+                // CRITICAL FIX: Disable frustum culling to prevent disappearing
+                pointCloud.frustumCulled = false;
+                
                 window.pointCloudMaterial = material;
                 
-                // Apply static rotation and scale
+                // Apply rotation and scale
                 pointCloud.rotation.x = CONFIG.cloudRotation.x * Math.PI / 180;
                 pointCloud.rotation.y = CONFIG.cloudRotation.y * Math.PI / 180;
                 pointCloud.rotation.z = CONFIG.cloudRotation.z * Math.PI / 180;
                 pointCloud.scale.set(CONFIG.cloudScale.x, CONFIG.cloudScale.y, CONFIG.cloudScale.z);
                 
                 scene.add(pointCloud);
-                
-                // Store reference for animated rotation
                 window.pointCloudMesh = pointCloud;
                 
                 console.log('🔄 Cloud rotation:', CONFIG.cloudRotation);
                 console.log('📏 Cloud scale:', CONFIG.cloudScale);
-                console.log('⏱️ Rotation speed:', CONFIG.cloudRotationSpeed);
                 
-                // Center camera on cloud
+                // Center camera if needed
                 geometry.computeBoundingBox();
                 const center = new THREE.Vector3();
                 geometry.boundingBox.getCenter(center);
                 
-                // Don't override user's camera target if they set one
-                // Only center if target is at origin (0,0,0)
                 if (CONFIG.cameraTarget[0] === 0 && CONFIG.cameraTarget[1] === 0 && CONFIG.cameraTarget[2] === 0) {
                     controls.target.copy(center);
                     controls.update();
                 }
                 
-                // Hide loading
                 loadingOverlay.classList.add('hidden');
             },
             (xhr) => {
                 const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
                 loadingProgress.textContent = percent + '%';
-                console.log(`Loading: ${percent}%`);
             },
             (error) => {
-                console.error('Error loading point cloud:', error);
-                document.getElementById('loading-text').textContent = 'ERROR LOADING';
-                loadingProgress.textContent = 'Check console';
+                console.error('Error loading:', error);
+                document.getElementById('loading-text').textContent = 'ERROR';
             }
         );
 
@@ -415,7 +444,7 @@
             
             const deltaTime = clock.getDelta();
             
-            // Update camera position in shader for distance-based sizing
+            // Update camera position for distance sizing
             if (window.pointCloudMaterial) {
                 window.pointCloudMaterial.uniforms.customCameraPos.value.copy(camera.position);
             }
