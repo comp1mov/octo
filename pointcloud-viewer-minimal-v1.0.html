@@ -108,7 +108,16 @@
             normalizeCloud: true,     // Scale cloud to fit in [-1, 1] cube
             
             // Cloud Transform
-            cloudRotationY: 23,        // Rotation around Y axis (degrees)
+            cloudRotation: {          // Static rotation (degrees)
+                x: 0,
+                y: 0,
+                z: 0
+            },
+            cloudRotationSpeed: {     // Animated rotation speed (degrees/second)
+                x: 0,
+                y: 0,
+                z: 0
+            },
             cloudScale: {             // Scale per axis
                 x: 1.0,
                 y: 1.0,
@@ -123,12 +132,12 @@
             cameraFar: 1000,
             
             // Points
-            pointSize: 0.005,          // Base size of points
+            pointSize: 0.01,          // Base size of points
             randomSize: 0.5,          // Random variation (0-1)
             
             // Grid
             showGrid: true,
-            gridSize: 50,             // Total size of grid
+            gridSize: 30,             // Total size of grid
             gridDivisions: 4,         // Number of divisions
             gridColor: '#444444',
             gridOffsetX: 0,           // Grid offset X
@@ -189,14 +198,14 @@
             varying vec3 vColor;
             
             void main() {
-                // Convert sRGB to linear (proper color handling)
-                vColor = pow(color, vec3(2.2));
+                // Use colors as-is (already in correct range)
+                vColor = color;
                 
                 vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
                 gl_Position = projectionMatrix * mvPosition;
                 
-                // Apply random size variation
-                float finalSize = pointSize * (1.0 + randomSize * randomSizeFactor);
+                // Apply random size variation + multiplier for easier control
+                float finalSize = pointSize * 100.0 * (1.0 + randomSize * randomSizeFactor);
                 gl_PointSize = finalSize * (300.0 / -mvPosition.z);
             }
         `;
@@ -210,9 +219,10 @@
                 float dist = length(center);
                 if (dist > 0.5) discard;
                 
-                // Convert back to sRGB for display
-                vec3 srgbColor = pow(vColor, vec3(1.0/2.2));
-                gl_FragColor = vec4(srgbColor, 1.0);
+                // Gamma correction (like in main Post-Pointillism)
+                vec3 correctedColor = pow(vColor, vec3(1.0/2.2));
+                
+                gl_FragColor = vec4(correctedColor, 1.0);
             }
         `;
 
@@ -303,14 +313,20 @@
                 // Create point cloud
                 const pointCloud = new THREE.Points(geometry, material);
                 
-                // Apply rotation and scale
-                pointCloud.rotation.y = CONFIG.cloudRotationY * Math.PI / 180;
+                // Apply static rotation and scale
+                pointCloud.rotation.x = CONFIG.cloudRotation.x * Math.PI / 180;
+                pointCloud.rotation.y = CONFIG.cloudRotation.y * Math.PI / 180;
+                pointCloud.rotation.z = CONFIG.cloudRotation.z * Math.PI / 180;
                 pointCloud.scale.set(CONFIG.cloudScale.x, CONFIG.cloudScale.y, CONFIG.cloudScale.z);
                 
                 scene.add(pointCloud);
                 
-                console.log('🔄 Cloud rotation:', CONFIG.cloudRotationY + '°');
+                // Store reference for animated rotation
+                window.pointCloudMesh = pointCloud;
+                
+                console.log('🔄 Cloud rotation:', CONFIG.cloudRotation);
                 console.log('📏 Cloud scale:', CONFIG.cloudScale);
+                console.log('⏱️ Rotation speed:', CONFIG.cloudRotationSpeed);
                 
                 // Center camera on cloud
                 geometry.computeBoundingBox();
@@ -342,8 +358,26 @@
         // ============================================
         // ANIMATION LOOP
         // ============================================
+        const clock = new THREE.Clock();
+        
         function animate() {
             requestAnimationFrame(animate);
+            
+            const deltaTime = clock.getDelta();
+            
+            // Animated rotation
+            if (window.pointCloudMesh) {
+                if (CONFIG.cloudRotationSpeed.x !== 0) {
+                    window.pointCloudMesh.rotation.x += CONFIG.cloudRotationSpeed.x * deltaTime * Math.PI / 180;
+                }
+                if (CONFIG.cloudRotationSpeed.y !== 0) {
+                    window.pointCloudMesh.rotation.y += CONFIG.cloudRotationSpeed.y * deltaTime * Math.PI / 180;
+                }
+                if (CONFIG.cloudRotationSpeed.z !== 0) {
+                    window.pointCloudMesh.rotation.z += CONFIG.cloudRotationSpeed.z * deltaTime * Math.PI / 180;
+                }
+            }
+            
             controls.update();
             renderer.render(scene, camera);
         }
@@ -360,4 +394,3 @@
     </script>
 </body>
 </html>
-
