@@ -133,14 +133,14 @@
             
             // Points
             pointSize: 0.5,          // Base size of points
-            randomSize: 0.5,          // Random variation (0-1)
+            randomSize: 1,          // Random variation (0-1)
                
             // Point Size by Distance
             pointSizeByDistance: true,
-            minDistance: 0.0,         // Distance where points are smallest
+            minDistance: 5.0,         // Distance where points are smallest
             maxDistance: 10.0,         // Distance where points are largest
             minPointSize: 1.0,        // Size at min distance
-            maxPointSize: 4.0,        // Size at max distance
+            maxPointSize: 1.0,        // Size at max distance
             
             // Grid
             showGrid: true,
@@ -150,8 +150,8 @@
             gridOffsetX: 0,           // Grid offset X
             gridOffsetY: -0.45,       // Grid offset Y  
             gridOffsetZ: 0,           // Grid offset Z
-            gridFadeStart: 0.4,       // Start fading at 40% from center
-            gridFadeEnd: 1.0,         // Fully transparent at edges
+            gridFadeStart: 50.0,       // Start fading at 40% from center
+            gridFadeEnd: 100.0,         // Fully transparent at edges
          
             // Background
             backgroundColor: '#000000',
