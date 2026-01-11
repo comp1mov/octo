@@ -125,15 +125,22 @@
             },
             
             // Camera
-            cameraPosition: [2, 1.5, 2],
+            cameraPosition: [2, 1.5, 1],
             cameraTarget: [0, 0, 0],
             cameraFOV: 75,
             cameraNear: 0.001,
             cameraFar: 1000,
             
             // Points
-            pointSize: 0.1,          // Base size of points
-            randomSize: 2.5,          // Random variation (0-1)
+            pointSize: 0.5,          // Base size of points
+            randomSize: 0.5,          // Random variation (0-1)
+               
+            // Point Size by Distance
+            pointSizeByDistance: true,
+            minDistance: 0.0,         // Distance where points are smallest
+            maxDistance: 10.0,         // Distance where points are largest
+            minPointSize: 2.0,        // Size at min distance
+            maxPointSize: 1.0,        // Size at max distance
             
             // Grid
             showGrid: true,
@@ -143,16 +150,9 @@
             gridOffsetX: 0,           // Grid offset X
             gridOffsetY: -0.45,       // Grid offset Y  
             gridOffsetZ: 0,           // Grid offset Z
-            gridFadeStart: 10.4,       // Start fading at 40% from center
-            gridFadeEnd: 29.0,         // Fully transparent at edges
-            
-            // Point Size by Distance
-            pointSizeByDistance: true,
-            minDistance: 0.0,         // Distance where points are smallest
-            maxDistance: 10.0,         // Distance where points are largest
-            minPointSize: 2,        // Size at min distance
-            maxPointSize: .5,        // Size at max distance
-            
+            gridFadeStart: 0.4,       // Start fading at 40% from center
+            gridFadeEnd: 1.0,         // Fully transparent at edges
+         
             // Background
             backgroundColor: '#000000',
         };
@@ -183,67 +183,25 @@
         controls.update();
 
         // ============================================
-        // GRID WITH RADIAL FADE
+        // GRID (Simple GridHelper - reliable)
         // ============================================
         if (CONFIG.showGrid) {
-            // Create custom grid with fade shader
-            const gridGeometry = new THREE.PlaneGeometry(CONFIG.gridSize, CONFIG.gridSize, CONFIG.gridDivisions, CONFIG.gridDivisions);
-            
-            const gridMaterial = new THREE.ShaderMaterial({
-                uniforms: {
-                    gridColor: { value: new THREE.Color(CONFIG.gridColor) },
-                    fadeStart: { value: CONFIG.gridFadeStart },
-                    fadeEnd: { value: CONFIG.gridFadeEnd },
-                    gridDivisions: { value: CONFIG.gridDivisions }
-                },
-                vertexShader: `
-                    varying vec2 vUv;
-                    varying vec3 vWorldPos;
-                    
-                    void main() {
-                        vUv = uv;
-                        vec4 worldPos = modelMatrix * vec4(position, 1.0);
-                        vWorldPos = worldPos.xyz;
-                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    }
-                `,
-                fragmentShader: `
-                    uniform vec3 gridColor;
-                    uniform float fadeStart;
-                    uniform float fadeEnd;
-                    uniform float gridDivisions;
-                    varying vec2 vUv;
-                    varying vec3 vWorldPos;
-                    
-                    void main() {
-                        // Distance from center (0-1 range)
-                        vec2 centerDist = abs(vUv - 0.5) * 2.0;
-                        float dist = max(centerDist.x, centerDist.y);
-                        
-                        // Radial fade
-                        float fade = 1.0 - smoothstep(fadeStart, fadeEnd, dist);
-                        
-                        // Grid lines
-                        vec2 coord = vUv * gridDivisions;
-                        vec2 grid = abs(fract(coord - 0.5) - 0.5) / fwidth(coord);
-                        float line = min(grid.x, grid.y);
-                        float gridMask = 1.0 - min(line, 1.0);
-                        
-                        // Combine
-                        float alpha = gridMask * fade * 0.5;
-                        
-                        gl_FragColor = vec4(gridColor, alpha);
-                    }
-                `,
-                transparent: true,
-                side: THREE.DoubleSide,
-                depthWrite: false
-            });
-            
-            const grid = new THREE.Mesh(gridGeometry, gridMaterial);
-            grid.rotation.x = -Math.PI / 2; // Horizontal
+            const grid = new THREE.GridHelper(
+                CONFIG.gridSize,
+                CONFIG.gridDivisions,
+                CONFIG.gridColor,
+                CONFIG.gridColor
+            );
             grid.position.set(CONFIG.gridOffsetX, CONFIG.gridOffsetY, CONFIG.gridOffsetZ);
+            
+            // Make grid fade at edges (modify opacity)
+            grid.material.transparent = true;
+            grid.material.opacity = 0.5;
+            
             scene.add(grid);
+            
+            // TODO: Add radial fade shader later if needed
+            // For now, simple grid that works is better
         }
 
         // ============================================
@@ -271,18 +229,25 @@
                 vec4 worldPosition = modelMatrix * vec4(position, 1.0);
                 gl_Position = projectionMatrix * mvPosition;
                 
-                // Calculate base size
-                float baseSize = pointSize / 100.0 * (1.0 + randomSize * randomSizeFactor);
+                // Start with base size
+                float finalSize = pointSize;
                 
-                // Apply distance-based sizing if enabled
+                // Apply random size variation (multiplier)
+                float randomMult = 1.0 + randomSize * (randomSizeFactor - 0.5) * 2.0;
+                // randomSizeFactor: 0-1, converted to -1 to +1 range
+                // randomSize: 0 = no variation, 0.5 = ±50%, 1.0 = ±100%
+                finalSize *= randomMult;
+                
+                // Apply distance-based sizing if enabled (multiplier)
                 if (pointSizeByDistance) {
                     float dist = distance(customCameraPos, worldPosition.xyz);
                     float t = clamp((dist - minDistance) / (maxDistance - minDistance), 0.0, 1.0);
-                    float sizeMult = mix(minPointSize, maxPointSize, t);
-                    baseSize *= sizeMult;
+                    float distanceMult = mix(minPointSize, maxPointSize, t);
+                    finalSize *= distanceMult;
                 }
                 
-                gl_PointSize = baseSize * (300.0 / -mvPosition.z);
+                // Apply perspective (closer = bigger)
+                gl_PointSize = finalSize * (300.0 / -mvPosition.z);
             }
         `;
 
