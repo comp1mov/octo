@@ -104,7 +104,10 @@
         // ============================================
         const CONFIG = {
             // File URL (Dropbox, Google Drive, or local server)
-            plyUrl: 'https://dl.dropboxusercontent.com/scl/fi/kp5io5lfx2gg5zg496ox2/Scan-at-14-36_Cross_Road_02.ply?rlkey=d12h3qm0so2bmird7gnndgq7x&',
+            plyUrl: 'https://dl.dropboxusercontent.com/scl/fi/2vvc9mp0fob0bpgmr4azn/Colambia_Road_gallery_London_market-1.6_mln.ply?rlkey=b2g09ryq3gu0n82awi3q47y41',
+            
+            // Normalization
+            normalizeCloud: true,     // Scale cloud to fit in [-1, 1] cube
             
             // Camera
             cameraPosition: [2, 1.5, 2],
@@ -236,6 +239,35 @@
             finalUrl,
             (geometry) => {
                 console.log('✅ Point cloud loaded');
+                
+                // Normalize cloud if enabled
+                if (CONFIG.normalizeCloud) {
+                    geometry.computeBoundingBox();
+                    const bbox = geometry.boundingBox;
+                    const center = new THREE.Vector3();
+                    bbox.getCenter(center);
+                    
+                    // Get max dimension for uniform scaling
+                    const size = new THREE.Vector3();
+                    bbox.getSize(size);
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    const scale = 2.0 / maxDim; // Scale to fit in [-1, 1]
+                    
+                    // Center and scale positions
+                    const positions = geometry.attributes.position;
+                    for (let i = 0; i < positions.count; i++) {
+                        positions.setXYZ(
+                            i,
+                            (positions.getX(i) - center.x) * scale,
+                            (positions.getY(i) - center.y) * scale,
+                            (positions.getZ(i) - center.z) * scale
+                        );
+                    }
+                    positions.needsUpdate = true;
+                    geometry.computeBoundingBox();
+                    
+                    console.log('📏 Cloud normalized to [-1, 1] cube');
+                }
                 
                 // Add random size attribute
                 const positions = geometry.attributes.position;
