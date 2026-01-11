@@ -141,8 +141,17 @@
             gridDivisions: 4,         // Number of divisions
             gridColor: '#444444',
             gridOffsetX: 0,           // Grid offset X
-            gridOffsetY: -0.45,        // Grid offset Y  
+            gridOffsetY: -0.45,       // Grid offset Y  
             gridOffsetZ: 0,           // Grid offset Z
+            gridFadeStart: 0.4,       // Start fading at 40% from center
+            gridFadeEnd: 1.0,         // Fully transparent at edges
+            
+            // Point Size by Distance
+            pointSizeByDistance: true,
+            minDistance: 1.0,         // Distance where points are smallest
+            maxDistance: 5.0,         // Distance where points are largest
+            minPointSize: 0.3,        // Size at min distance
+            maxPointSize: 1.0,        // Size at max distance
             
             // Background
             backgroundColor: '#000000',
@@ -174,15 +183,65 @@
         controls.update();
 
         // ============================================
-        // GRID
+        // GRID WITH RADIAL FADE
         // ============================================
         if (CONFIG.showGrid) {
-            const grid = new THREE.GridHelper(
-                CONFIG.gridSize,
-                CONFIG.gridDivisions,
-                CONFIG.gridColor,
-                CONFIG.gridColor
-            );
+            // Create custom grid with fade shader
+            const gridGeometry = new THREE.PlaneGeometry(CONFIG.gridSize, CONFIG.gridSize, CONFIG.gridDivisions, CONFIG.gridDivisions);
+            
+            const gridMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    gridColor: { value: new THREE.Color(CONFIG.gridColor) },
+                    fadeStart: { value: CONFIG.gridFadeStart },
+                    fadeEnd: { value: CONFIG.fadeEnd },
+                    gridSize: { value: CONFIG.gridSize }
+                },
+                vertexShader: `
+                    varying vec2 vUv;
+                    varying vec3 vWorldPos;
+                    
+                    void main() {
+                        vUv = uv;
+                        vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                        vWorldPos = worldPos.xyz;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform vec3 gridColor;
+                    uniform float fadeStart;
+                    uniform float fadeEnd;
+                    uniform float gridSize;
+                    varying vec2 vUv;
+                    varying vec3 vWorldPos;
+                    
+                    void main() {
+                        // Distance from center (0-1 range)
+                        vec2 centerDist = abs(vUv - 0.5) * 2.0;
+                        float dist = max(centerDist.x, centerDist.y);
+                        
+                        // Radial fade
+                        float fade = 1.0 - smoothstep(fadeStart, fadeEnd, dist);
+                        
+                        // Grid lines
+                        vec2 coord = vUv * float(${CONFIG.gridDivisions});
+                        vec2 grid = abs(fract(coord - 0.5) - 0.5) / fwidth(coord);
+                        float line = min(grid.x, grid.y);
+                        float gridMask = 1.0 - min(line, 1.0);
+                        
+                        // Combine
+                        float alpha = gridMask * fade * 0.5;
+                        
+                        gl_FragColor = vec4(gridColor, alpha);
+                    }
+                `,
+                transparent: true,
+                side: THREE.DoubleSide,
+                depthWrite: false
+            });
+            
+            const grid = new THREE.Mesh(gridGeometry, gridMaterial);
+            grid.rotation.x = -Math.PI / 2; // Horizontal
             grid.position.set(CONFIG.gridOffsetX, CONFIG.gridOffsetY, CONFIG.gridOffsetZ);
             scene.add(grid);
         }
@@ -193,6 +252,13 @@
         const vertexShader = `
             uniform float pointSize;
             uniform float randomSize;
+            uniform bool pointSizeByDistance;
+            uniform float minDistance;
+            uniform float maxDistance;
+            uniform float minPointSize;
+            uniform float maxPointSize;
+            uniform vec3 cameraPosition;
+            
             attribute vec3 color;
             attribute float randomSizeFactor;
             varying vec3 vColor;
@@ -202,11 +268,21 @@
                 vColor = color;
                 
                 vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
                 gl_Position = projectionMatrix * mvPosition;
                 
-                // Apply random size variation + multiplier for easier control
-                float finalSize = pointSize / 100.0 * (1.0 + randomSize * randomSizeFactor);
-                gl_PointSize = finalSize * (300.0 / -mvPosition.z);
+                // Calculate base size
+                float baseSize = pointSize / 100.0 * (1.0 + randomSize * randomSizeFactor);
+                
+                // Apply distance-based sizing if enabled
+                if (pointSizeByDistance) {
+                    float dist = distance(cameraPosition, worldPosition.xyz);
+                    float t = clamp((dist - minDistance) / (maxDistance - minDistance), 0.0, 1.0);
+                    float sizeMult = mix(minPointSize, maxPointSize, t);
+                    baseSize *= sizeMult;
+                }
+                
+                gl_PointSize = baseSize * (300.0 / -mvPosition.z);
             }
         `;
 
@@ -301,7 +377,13 @@
                 const material = new THREE.ShaderMaterial({
                     uniforms: {
                         pointSize: { value: CONFIG.pointSize },
-                        randomSize: { value: CONFIG.randomSize }
+                        randomSize: { value: CONFIG.randomSize },
+                        pointSizeByDistance: { value: CONFIG.pointSizeByDistance },
+                        minDistance: { value: CONFIG.minDistance },
+                        maxDistance: { value: CONFIG.maxDistance },
+                        minPointSize: { value: CONFIG.minPointSize },
+                        maxPointSize: { value: CONFIG.maxPointSize },
+                        cameraPosition: { value: camera.position }
                     },
                     vertexShader: vertexShader,
                     fragmentShader: fragmentShader,
@@ -312,6 +394,9 @@
                 
                 // Create point cloud
                 const pointCloud = new THREE.Points(geometry, material);
+                
+                // Store material reference for camera position updates
+                window.pointCloudMaterial = material;
                 
                 // Apply static rotation and scale
                 pointCloud.rotation.x = CONFIG.cloudRotation.x * Math.PI / 180;
@@ -364,6 +449,11 @@
             requestAnimationFrame(animate);
             
             const deltaTime = clock.getDelta();
+            
+            // Update camera position in shader for distance-based sizing
+            if (window.pointCloudMaterial) {
+                window.pointCloudMaterial.uniforms.cameraPosition.value.copy(camera.position);
+            }
             
             // Animated rotation
             if (window.pointCloudMesh) {
