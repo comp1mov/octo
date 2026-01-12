@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Point Cloud Viewer - Minimal</title>
+    <title>Spatial Memory Fragment</title>
     <style>
         * {
             margin: 0;
@@ -12,7 +12,7 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
             overflow: hidden;
             background: #000;
         }
@@ -23,7 +23,6 @@
             position: relative;
         }
         
-        /* iPad fullscreen fix */
         @supports (padding: env(safe-area-inset-top)) {
             body {
                 padding: 0 !important;
@@ -36,7 +35,7 @@
             }
         }
         
-        /* Loading Animation */
+        /* Loading Screen */
         #loading-overlay {
             position: fixed;
             top: 0;
@@ -50,17 +49,64 @@
             align-items: center;
             z-index: 10000;
             color: #fff;
-            font-size: 24px;
-            letter-spacing: 4px;
+            padding: 20px;
         }
         
         #loading-overlay.hidden {
             display: none;
         }
         
+        .loading-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            max-width: 90vw;
+        }
+        
+        #loading-title {
+            font-size: 14px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            opacity: 0.8;
+            margin-bottom: 30px;
+            font-weight: 300;
+            line-height: 1.6;
+        }
+        
+        #loading-description {
+            margin-bottom: 40px;
+            font-size: 14px;
+            opacity: 0.8;
+            line-height: 1.8;
+            font-weight: 300;
+        }
+        
+        #loading-time {
+            font-size: 14px;
+            font-weight: 300;
+            opacity: 0.7;
+        }
+        
+        #loading-location {
+            font-size: 16px;
+            opacity: 1;
+            font-weight: 700;
+            margin: 0px 0;
+        }
+        
+        #loading-place {
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 1;
+        }
+        
         #loading-text {
+            font-size: 24px;
+            letter-spacing: 4px;
             animation: pulse 1.5s ease-in-out infinite;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
+            font-weight: 300;
         }
         
         @keyframes pulse {
@@ -69,8 +115,85 @@
         }
         
         #loading-progress {
-            font-size: 16px;
+            font-size: 14px;
             opacity: 0.7;
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+        
+        #loading-credits {
+            font-size: 14px;
+            opacity: 0.7;
+            line-height: 1.8;
+            font-weight: 300;
+            text-align: center;
+        }
+        
+        #loading-credits a {
+            color: #fff;
+            font-weight: 300
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        
+        #loading-credits a:hover {
+            opacity: 1.0;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        /* Controls Hint - Compact Box */
+        #controls-hint {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+            padding: 10px 10px;
+            border-radius: 2px;
+            display: none;
+            z-index: 9999;
+            color: #fff;
+            font-weight: 300;
+            text-align: left;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            /* box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); */
+        }
+        
+        #controls-hint.show {
+            display: block;
+            opacity: 1;
+        }
+        
+        #controls-hint.fade-out {
+            opacity: 0;
+        }
+        
+        .control-section {
+            margin-bottom: 20px;
+        }
+        
+        .control-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-title {
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            opacity: 1.0;
+            font-weight: 400;
+        }
+        
+        .control-inputs {
+            font-size: 13px;
+            opacity: 0.7;
+            line-height: 1.6;
+            padding-left: 12px;
         }
     </style>
 </head>
@@ -79,8 +202,52 @@
     
     <!-- Loading Overlay -->
     <div id="loading-overlay">
-        <div id="loading-text">LOADING</div>
-        <div id="loading-progress">0%</div>
+        <div class="loading-content">
+            <div id="loading-title">
+                Spatial<br>Memory Fragment <br>
+            </div>
+            
+            <div id="loading-description">
+                <div id="loading-time">Scan at 17.33</div>
+                <div id="loading-location">Oratorio di San Pietro</div>
+                <div id="loading-place">Tirano, Italy</div>
+            </div>
+            
+            <div id="loading-text">LOADING</div>
+            <div id="loading-progress">0%</div>
+            <br>
+            <div id="loading-credits">
+                 scanned by <a href="https://grisha-tsvetkov.com/" target="_blank">Grisha Tsvetkov</a><br>
+                <a href="https://www.instagram.com/post.pointillism/" target="_blank">@post.pointillism</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Controls Hint (compact box) -->
+    <div id="controls-hint">
+        <div class="control-section">
+            <div class="control-title">ROTATE</div>
+            <div class="control-inputs">
+                1 finger<br>
+                Left click + drag
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <div class="control-title">PAN</div>
+            <div class="control-inputs">
+                2 fingers<br>
+                Right click + drag
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <div class="control-title">ZOOM</div>
+            <div class="control-inputs">
+                Pinch<br>
+                Scroll wheel
+            </div>
+        </div>
     </div>
 
     <script type="importmap">
@@ -98,64 +265,124 @@
         import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
 
         // ============================================
-        // CONFIG - EDIT THIS
+        // CONFIG
         // ============================================
         const CONFIG = {
-            // File URL (Dropbox, Google Drive, or local server)
+            // Debug Mode - skip loading & hints for fast iteration
+            debugMode: false,  // Set to true for quick testing!
+            
+            loadingScreen: {
+                title: 'SpatialMemoryFragment',
+                time: 'Scan at 17.33',
+                location: 'Oratorio di San Pietro',
+                place: 'Tirano, Italy, 2024',
+                minLoadingTime: 3000,
+                credits: {
+                    name: 'Grisha Tsvetkov',
+                    website: 'https://grisha-tsvetkov.com/',
+                    instagram: 'https://www.instagram.com/post.pointillism/',
+                    handle: '@post.pointillism'
+                },
+                showControlsHint: true,
+                controlsHintDuration: 5000
+            },
+            
             plyUrl: 'https://dl.dropboxusercontent.com/scl/fi/ndr999bp86vu232c53c9g/Church_Tirano_Itatly_06_2024.ply?rlkey=l5rmwlubco7a1j2jjsnzqu25i&',
             
-            // Normalization
-            normalizeCloud: true,     // Scale cloud to fit in [-1, 1] cube
+            normalizeCloud: true,
+            cloudRotation: { x: 0, y: 66, z: 0 },
+            cloudRotationSpeed: { x: 0, y: 0, z: 0 },
+            cloudScale: { x: 2.0, y: 2.0, z: 2.0 },
             
-            // Cloud Transform
-            cloudRotation: {          // Static rotation (degrees)
-                x: 0,
-                y: 66,
-                z: 0
-            },
-            cloudRotationSpeed: {     // Animated rotation speed (degrees/second)
-                x: 0,
-                y: 0,
-                z: 0
-            },
-            cloudScale: {             // Scale per axis
-                x: 2.0,
-                y: 2.0,
-                z: 2.0
-            },
-            
-            // Camera
             cameraPosition: [-0.7, 1.4, -0.85],
             cameraTarget: [-0.36, 0.01, 0.06],
             cameraFOV: 75,
             cameraNear: 0.001,
             cameraFar: 1000,
             
-            // Points
-            pointSize: 0.005,          // Base size of points
-            randomSize: 0.7,          // Random variation (0-1)
-               
-            // Point Size by Distance
-            pointSizeByDistance: true,
-            minDistance: 0.0,         // Distance where points are smallest
-            maxDistance: 1.0,         // Distance where points are largest
-            minPointSize: 0.2,        // Size at min distance
-            maxPointSize: 3.0,        // Size at max distance
+            pointSize: 0.005,
+            randomSize: 0.7,
             
-            // Grid
+            pointSizeByDistance: true,
+            minDistance: 0.0,
+            maxDistance: 1.0,
+            minPointSize: 0.2,
+            maxPointSize: 2.0,
+            
             showGrid: true,
-            gridSize: 7,             // Total size of grid
-            gridDivisions: 5,         // Number of divisions
+            gridSizeX: 7,
+            gridSizeZ: 7,
+            gridDivisions: 5,
             gridColor: '#FFFFFF',
-            gridOffsetX: 0,           // Grid offset X
-            gridOffsetY: -0.55,       // Grid offset Y  
-            gridOffsetZ: 0,           // Grid offset Z
-            gridFadeStart: 0.1,       // Start fading at 40% from center (0-1)
-            gridFadeEnd: 1.0,         // Fully transparent at edges (0-1)
-         
-            // Background
+            gridOffsetX: 0,
+            gridOffsetY: -0.58,
+            gridOffsetZ: 0,
+            gridFadeStart: 0.1,
+            gridFadeEnd: 1.0,
+            
             backgroundColor: '#000000',
         };
+
+        // ============================================
+        // INDEXEDDB CACHE
+        // ============================================
+        const DB_NAME = 'PointCloudCache';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'plyFiles';
+
+        class PLYCache {
+            constructor() {
+                this.db = null;
+            }
+
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        resolve();
+                    };
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            db.createObjectStore(STORE_NAME, { keyPath: 'url' });
+                        }
+                    };
+                });
+            }
+
+            async get(url) {
+                if (!this.db) await this.init();
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction([STORE_NAME], 'readonly');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.get(url);
+                    request.onsuccess = () => resolve(request.result?.data);
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            async set(url, data) {
+                if (!this.db) await this.init();
+                return new Promise((resolve, reject) => {
+                    const transaction = this.db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.put({ url, data, timestamp: Date.now() });
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+        }
+
+        const cache = new PLYCache();
+
+        // ============================================
+        // SETUP LOADING SCREEN
+        // ============================================
+        document.getElementById('loading-time').textContent = CONFIG.loadingScreen.time;
+        document.getElementById('loading-location').textContent = CONFIG.loadingScreen.location;
+        document.getElementById('loading-place').textContent = CONFIG.loadingScreen.place;
 
         // ============================================
         // SCENE SETUP
@@ -183,30 +410,33 @@
         controls.update();
 
         // ============================================
-        // GRID WITH RADIAL FADE
+        // GRID (rectangular support)
         // ============================================
         if (CONFIG.showGrid) {
+            const gridSizeX = CONFIG.gridSizeX;
+            const gridSizeZ = CONFIG.gridSizeZ;
+            
             const grid = new THREE.GridHelper(
-                CONFIG.gridSize,
+                Math.max(gridSizeX, gridSizeZ),
                 CONFIG.gridDivisions,
                 CONFIG.gridColor,
                 CONFIG.gridColor
             );
             grid.position.set(CONFIG.gridOffsetX, CONFIG.gridOffsetY, CONFIG.gridOffsetZ);
+            grid.scale.set(gridSizeX / Math.max(gridSizeX, gridSizeZ), 1, gridSizeZ / Math.max(gridSizeX, gridSizeZ));
             
-            // Custom shader material for fade effect
             const gridMaterial = new THREE.ShaderMaterial({
                 uniforms: {
                     gridColor: { value: new THREE.Color(CONFIG.gridColor) },
                     fadeStart: { value: CONFIG.gridFadeStart },
                     fadeEnd: { value: CONFIG.gridFadeEnd },
                     gridCenter: { value: new THREE.Vector3(CONFIG.gridOffsetX, CONFIG.gridOffsetY, CONFIG.gridOffsetZ) },
-                    gridSize: { value: CONFIG.gridSize }
+                    gridSizeX: { value: gridSizeX },
+                    gridSizeZ: { value: gridSizeZ }
                 },
                 vertexShader: `
                     uniform vec3 gridCenter;
                     varying vec3 vWorldPos;
-                    
                     void main() {
                         vec4 worldPos = modelMatrix * vec4(position, 1.0);
                         vWorldPos = worldPos.xyz;
@@ -218,20 +448,17 @@
                     uniform float fadeStart;
                     uniform float fadeEnd;
                     uniform vec3 gridCenter;
-                    uniform float gridSize;
+                    uniform float gridSizeX;
+                    uniform float gridSizeZ;
                     varying vec3 vWorldPos;
-                    
                     void main() {
-                        // Distance from center (normalized 0-1)
-                        vec2 centerDist = (vWorldPos.xz - gridCenter.xz) / (gridSize * 0.5);
+                        vec2 centerDist = vec2(
+                            (vWorldPos.x - gridCenter.x) / (gridSizeX * 0.5),
+                            (vWorldPos.z - gridCenter.z) / (gridSizeZ * 0.5)
+                        );
                         float dist = length(centerDist);
-                        
-                        // Radial fade
                         float alpha = 1.0 - smoothstep(fadeStart, fadeEnd, dist);
-                        
-                        // Base opacity
                         alpha *= 0.5;
-                        
                         gl_FragColor = vec4(gridColor, alpha);
                     }
                 `,
@@ -240,10 +467,8 @@
                 side: THREE.DoubleSide
             });
             
-            // Replace grid material
             grid.material.dispose();
             grid.material = gridMaterial;
-            
             scene.add(grid);
         }
 
@@ -259,180 +484,212 @@
             uniform float minPointSize;
             uniform float maxPointSize;
             uniform vec3 customCameraPos;
-            
             attribute vec3 color;
             attribute float randomSizeFactor;
             varying vec3 vColor;
-            
             void main() {
-                // Use colors as-is (already in correct range)
                 vColor = color;
-                
                 vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
                 vec4 worldPosition = modelMatrix * vec4(position, 1.0);
                 gl_Position = projectionMatrix * mvPosition;
-                
-                // Start with base size
                 float finalSize = pointSize;
-                
-                // Apply random size variation (multiplier)
                 float randomMult = 1.0 + randomSize * (randomSizeFactor - 0.5) * 2.0;
                 finalSize *= randomMult;
-                
-                // Apply distance-based sizing if enabled (multiplier)
                 if (pointSizeByDistance) {
                     float dist = distance(customCameraPos, worldPosition.xyz);
                     float t = clamp((dist - minDistance) / (maxDistance - minDistance), 0.0, 1.0);
                     float distanceMult = mix(minPointSize, maxPointSize, t);
                     finalSize *= distanceMult;
                 }
-                
-                // Apply perspective (closer = bigger)
                 gl_PointSize = finalSize * (300.0 / -mvPosition.z);
             }
         `;
 
         const fragmentShader = `
             varying vec3 vColor;
-            
             void main() {
-                // Circular points
                 vec2 center = gl_PointCoord - vec2(0.5);
                 float dist = length(center);
                 if (dist > 0.5) discard;
-                
-                // Gamma correction (like in main Post-Pointillism)
                 vec3 correctedColor = pow(vColor, vec3(1.0/2.2));
-                
                 gl_FragColor = vec4(correctedColor, 1.0);
             }
         `;
 
         // ============================================
-        // LOAD POINT CLOUD
+        // LOAD WITH CACHE
         // ============================================
-        
-        // CORS Proxy helper
         function getCorsProxyUrl(url) {
             if (!url.startsWith('http') || url.includes('corsproxy') || url.includes('allorigins')) {
                 return url;
             }
-            
             if (url.includes('dropbox.com')) {
-                const directUrl = url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('&dl=1', '');
-                return directUrl;
+                return url.replace('www.dropbox.com', 'dl.dropboxusercontent.com').replace('&dl=1', '');
             }
-            
             return url;
         }
-        
-        const loader = new PLYLoader();
-        const loadingOverlay = document.getElementById('loading-overlay');
-        const loadingProgress = document.getElementById('loading-progress');
 
-        const finalUrl = getCorsProxyUrl(CONFIG.plyUrl);
-        console.log('Loading from:', finalUrl);
+        async function loadPLY(url) {
+            const loadStartTime = Date.now();
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const loadingProgress = document.getElementById('loading-progress');
+            const controlsHint = document.getElementById('controls-hint');
+            
+            // Debug mode - minimal wait
+            const minLoadTime = CONFIG.debugMode ? 100 : CONFIG.loadingScreen.minLoadingTime;
+            
+            let geometry;
 
-        loader.load(
-            finalUrl,
-            (geometry) => {
-                console.log('✅ Point cloud loaded');
+            try {
+                const cachedData = await cache.get(url);
                 
-                // Normalize cloud if enabled
-                if (CONFIG.normalizeCloud) {
-                    geometry.computeBoundingBox();
-                    const bbox = geometry.boundingBox;
-                    const center = new THREE.Vector3();
-                    bbox.getCenter(center);
+                if (cachedData) {
+                    console.log('✅ Loading from cache');
                     
-                    const size = new THREE.Vector3();
-                    bbox.getSize(size);
-                    const maxDim = Math.max(size.x, size.y, size.z);
-                    const scale = 2.0 / maxDim;
+                    const loader = new PLYLoader();
+                    geometry = loader.parse(cachedData);
                     
-                    const positions = geometry.attributes.position;
-                    for (let i = 0; i < positions.count; i++) {
-                        positions.setXYZ(
-                            i,
-                            (positions.getX(i) - center.x) * scale,
-                            (positions.getY(i) - center.y) * scale,
-                            (positions.getZ(i) - center.z) * scale
-                        );
+                    if (!CONFIG.debugMode) {
+                        const startTime = Date.now();
+                        const animateProgress = () => {
+                            const elapsed = Date.now() - startTime;
+                            const progress = Math.min(100, (elapsed / minLoadTime) * 100);
+                            loadingProgress.textContent = Math.floor(progress) + '%';
+                            
+                            if (progress < 100) {
+                                requestAnimationFrame(animateProgress);
+                            }
+                        };
+                        animateProgress();
                     }
-                    positions.needsUpdate = true;
-                    geometry.computeBoundingBox();
                     
-                    console.log('📏 Cloud normalized to [-1, 1] cube');
+                } else {
+                    console.log('📥 Loading from network');
+                    
+                    const loader = new PLYLoader();
+                    geometry = await new Promise((resolve, reject) => {
+                        loader.load(
+                            url,
+                            (geo) => resolve(geo),
+                            (xhr) => {
+                                if (!CONFIG.debugMode) {
+                                    const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
+                                    loadingProgress.textContent = percent + '%';
+                                }
+                            },
+                            (error) => reject(error)
+                        );
+                    });
+                    
+                    const response = await fetch(url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    await cache.set(url, arrayBuffer);
+                    console.log('💾 Saved to cache');
                 }
                 
-                // Add random size attribute
-                const positions = geometry.attributes.position;
-                const randomSizes = new Float32Array(positions.count);
-                for (let i = 0; i < positions.count; i++) {
-                    randomSizes[i] = Math.random();
-                }
-                geometry.setAttribute('randomSizeFactor', new THREE.BufferAttribute(randomSizes, 1));
+                processAndDisplayGeometry(geometry);
                 
-                // Create material
-                const material = new THREE.ShaderMaterial({
-                    uniforms: {
-                        pointSize: { value: CONFIG.pointSize },
-                        randomSize: { value: CONFIG.randomSize },
-                        pointSizeByDistance: { value: CONFIG.pointSizeByDistance },
-                        minDistance: { value: CONFIG.minDistance },
-                        maxDistance: { value: CONFIG.maxDistance },
-                        minPointSize: { value: CONFIG.minPointSize },
-                        maxPointSize: { value: CONFIG.maxPointSize },
-                        customCameraPos: { value: camera.position }
-                    },
-                    vertexShader: vertexShader,
-                    fragmentShader: fragmentShader,
-                    transparent: false,
-                    depthTest: true,
-                    depthWrite: true
-                });
+                const elapsedTime = Date.now() - loadStartTime;
+                const remainingTime = Math.max(0, minLoadTime - elapsedTime);
                 
-                // Create point cloud
-                const pointCloud = new THREE.Points(geometry, material);
-                
-                // CRITICAL FIX: Disable frustum culling to prevent disappearing
-                pointCloud.frustumCulled = false;
-                
-                window.pointCloudMaterial = material;
-                
-                // Apply rotation and scale
-                pointCloud.rotation.x = CONFIG.cloudRotation.x * Math.PI / 180;
-                pointCloud.rotation.y = CONFIG.cloudRotation.y * Math.PI / 180;
-                pointCloud.rotation.z = CONFIG.cloudRotation.z * Math.PI / 180;
-                pointCloud.scale.set(CONFIG.cloudScale.x, CONFIG.cloudScale.y, CONFIG.cloudScale.z);
-                
-                scene.add(pointCloud);
-                window.pointCloudMesh = pointCloud;
-                
-                console.log('🔄 Cloud rotation:', CONFIG.cloudRotation);
-                console.log('📏 Cloud scale:', CONFIG.cloudScale);
-                
-                // Center camera if needed
-                geometry.computeBoundingBox();
-                const center = new THREE.Vector3();
-                geometry.boundingBox.getCenter(center);
-                
-                if (CONFIG.cameraTarget[0] === 0 && CONFIG.cameraTarget[1] === 0 && CONFIG.cameraTarget[2] === 0) {
-                    controls.target.copy(center);
-                    controls.update();
-                }
+                await new Promise(resolve => setTimeout(resolve, remainingTime));
                 
                 loadingOverlay.classList.add('hidden');
-            },
-            (xhr) => {
-                const percent = (xhr.loaded / xhr.total * 100).toFixed(0);
-                loadingProgress.textContent = percent + '%';
-            },
-            (error) => {
+                
+                // Show controls hint (skip in debug mode)
+                if (CONFIG.loadingScreen.showControlsHint && !CONFIG.debugMode) {
+                    setTimeout(() => {
+                        controlsHint.classList.add('show');
+                        setTimeout(() => {
+                            controlsHint.classList.add('fade-out');
+                            setTimeout(() => {
+                                controlsHint.style.display = 'none';
+                            }, 500);
+                        }, CONFIG.loadingScreen.controlsHintDuration);
+                    }, 100);
+                }
+                
+            } catch (error) {
                 console.error('Error loading:', error);
                 document.getElementById('loading-text').textContent = 'ERROR';
             }
-        );
+        }
+
+        function processAndDisplayGeometry(geometry) {
+            if (CONFIG.normalizeCloud) {
+                geometry.computeBoundingBox();
+                const bbox = geometry.boundingBox;
+                const center = new THREE.Vector3();
+                bbox.getCenter(center);
+                
+                const size = new THREE.Vector3();
+                bbox.getSize(size);
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const scale = 2.0 / maxDim;
+                
+                const positions = geometry.attributes.position;
+                for (let i = 0; i < positions.count; i++) {
+                    positions.setXYZ(
+                        i,
+                        (positions.getX(i) - center.x) * scale,
+                        (positions.getY(i) - center.y) * scale,
+                        (positions.getZ(i) - center.z) * scale
+                    );
+                }
+                positions.needsUpdate = true;
+                geometry.computeBoundingBox();
+            }
+            
+            const positions = geometry.attributes.position;
+            const randomSizes = new Float32Array(positions.count);
+            for (let i = 0; i < positions.count; i++) {
+                randomSizes[i] = Math.random();
+            }
+            geometry.setAttribute('randomSizeFactor', new THREE.BufferAttribute(randomSizes, 1));
+            
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    pointSize: { value: CONFIG.pointSize },
+                    randomSize: { value: CONFIG.randomSize },
+                    pointSizeByDistance: { value: CONFIG.pointSizeByDistance },
+                    minDistance: { value: CONFIG.minDistance },
+                    maxDistance: { value: CONFIG.maxDistance },
+                    minPointSize: { value: CONFIG.minPointSize },
+                    maxPointSize: { value: CONFIG.maxPointSize },
+                    customCameraPos: { value: camera.position }
+                },
+                vertexShader: vertexShader,
+                fragmentShader: fragmentShader,
+                transparent: false,
+                depthTest: true,
+                depthWrite: true
+            });
+            
+            const pointCloud = new THREE.Points(geometry, material);
+            pointCloud.frustumCulled = false;
+            
+            window.pointCloudMaterial = material;
+            
+            pointCloud.rotation.x = CONFIG.cloudRotation.x * Math.PI / 180;
+            pointCloud.rotation.y = CONFIG.cloudRotation.y * Math.PI / 180;
+            pointCloud.rotation.z = CONFIG.cloudRotation.z * Math.PI / 180;
+            pointCloud.scale.set(CONFIG.cloudScale.x, CONFIG.cloudScale.y, CONFIG.cloudScale.z);
+            
+            scene.add(pointCloud);
+            window.pointCloudMesh = pointCloud;
+            
+            geometry.computeBoundingBox();
+            const center = new THREE.Vector3();
+            geometry.boundingBox.getCenter(center);
+            
+            if (CONFIG.cameraTarget[0] === 0 && CONFIG.cameraTarget[1] === 0 && CONFIG.cameraTarget[2] === 0) {
+                controls.target.copy(center);
+                controls.update();
+            }
+        }
+
+        const finalUrl = getCorsProxyUrl(CONFIG.plyUrl);
+        loadPLY(finalUrl);
 
         // ============================================
         // ANIMATION LOOP
@@ -441,15 +698,12 @@
         
         function animate() {
             requestAnimationFrame(animate);
-            
             const deltaTime = clock.getDelta();
             
-            // Update camera position for distance sizing
             if (window.pointCloudMaterial) {
                 window.pointCloudMaterial.uniforms.customCameraPos.value.copy(camera.position);
             }
             
-            // Animated rotation
             if (window.pointCloudMesh) {
                 if (CONFIG.cloudRotationSpeed.x !== 0) {
                     window.pointCloudMesh.rotation.x += CONFIG.cloudRotationSpeed.x * deltaTime * Math.PI / 180;
@@ -467,9 +721,6 @@
         }
         animate();
 
-        // ============================================
-        // WINDOW RESIZE
-        // ============================================
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
