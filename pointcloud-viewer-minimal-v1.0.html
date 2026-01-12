@@ -91,13 +91,13 @@
         #loading-location {
             font-size: 16px;
             opacity: 1;
-            font-weight: 700;
+            font-weight: 500;
             margin: 0px 0;
         }
         
         #loading-place {
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 300;
             opacity: 1;
         }
         
@@ -148,10 +148,10 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(20px);
             padding: 10px 10px;
-            border-radius: 2px;
+            border-radius: 0px;
             display: none;
             z-index: 9999;
             color: #fff;
@@ -272,7 +272,7 @@
             debugMode: false,  // Set to true for quick testing!
             
             loadingScreen: {
-                title: 'SpatialMemoryFragment',
+                title: 'SpatialMemoryFragment 1733',
                 time: 'Scan at 17.33',
                 location: 'Oratorio di San Pietro',
                 place: 'Tirano, Italy, 2024',
@@ -291,7 +291,7 @@
             
             normalizeCloud: true,
             cloudRotation: { x: 0, y: 66, z: 0 },
-            cloudRotationSpeed: { x: 0, y: 0, z: 0 },
+            cloudRotationSpeed: { x: 0, y: 1, z: 0 },
             cloudScale: { x: 2.0, y: 2.0, z: 2.0 },
             
             cameraPosition: [-0.7, 1.4, -0.85],
@@ -310,12 +310,12 @@
             maxPointSize: 2.0,
             
             showGrid: true,
-            gridSizeX: 7,
-            gridSizeZ: 7,
-            gridDivisions: 5,
+            gridSizeX: 8,
+            gridSizeZ: 9,
+            gridDivisions: 4,
             gridColor: '#FFFFFF',
             gridOffsetX: 0,
-            gridOffsetY: -0.58,
+            gridOffsetY: -0.6,
             gridOffsetZ: 0,
             gridFadeStart: 0.1,
             gridFadeEnd: 1.0,
